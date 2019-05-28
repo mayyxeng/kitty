@@ -172,5 +172,51 @@ int ashenhurst_decomposition( const TTf& tt, const std::vector<uint32_t>& ys_ind
   } while ( !equal( g, g_contradiction ) );
   return decomposition.size();
 }
+template <class TT>
+bool is_bad_pair(const TT& tt, const std::tuple<uint32_t, uint32_t, uint32_t>& partition, uint32_t retry = 50) {
+  std::array<std::pair<uint64_t, bool>, 8> delta_array;
+  uint64_t i, j, m;
+  std::tie(i, j, m) = partition;
+  dynamic_truth_table index(3);
+  assert(i < tt.num_vars());
+  assert(j < tt.num_vars());
+  assert(m < tt.num_vars());
+  assert(i < j);  
+  for (auto& pair : delta_array){
+    auto& delta = pair.first;
+    delta = 0u;
+    // Since delta is a sparse bit vector (3 non zero at most) there is room for optimization.
+    if (get_bit(index, 0))
+      delta |= uint64_t (1) << i;
+    if (get_bit(index, 1))
+      delta |= uint64_t (1) << j;
+    if (get_bit(index, 2))
+      delta |= uint64_t (1) << m;
+    next_inplace(index);
+  }
+  std::random_device dev;
+  std::mt19937 rand_gen(dev());
+  std::uniform_int_distribution<uint64_t> random_x(0, uint64_t(1) << tt.num_vars());
+  std::array<uint8_t, 4> pairs;
+  for (int c = 0; c < retry; c ++){
+    uint64_t x = random_x(rand_gen);
+    for (auto& pair : delta_array)
+      pair.second = get_bit(tt, x ^ pair.first) > 0;
+    pairs[0] = delta_array[0].second + delta_array[1].second << 1;
+    pairs[1] = delta_array[2].second + delta_array[3].second << 1;
+    pairs[2] = delta_array[3].second + delta_array[5].second << 1;
+    pairs[3] = delta_array[4].second + delta_array[7].second << 1;
+    std::vector<uint8_t> values;
+    for (const auto& pair : pairs)
+      if (std::find(values.begin(), values.end(), pair) == values.end())
+        values.push_back(pair);
+    
+    if (values.size() <= 2) //Need to try more
+      continue;
+    else 
+      return true;
+  }
+  return false;
 
+}
 } // namespace kitty

@@ -62,5 +62,12 @@ int main( int argc, char** argv )
     std::cout << "G: " << kitty::to_binary( g ) << " H: " << kitty::to_binary( h ) << std::endl;
   }
 
+  std::cout << "{0, 3}{4} is ";
+  if (kitty::is_bad_pair(tt, std::make_tuple(0, 3, 4)))
+    std::cout << "a bad ";
+  else 
+    std::cout << "a good ";
+  std::cout << "pair" << std::endl;
+  
   return 0;
 }
